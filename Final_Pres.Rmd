@@ -1,0 +1,607 @@
+---
+title: "Mapping Carbon Flux and Storage in the Continental US"
+author: "jettr"
+date: "2024-03-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# What is up with Carbon Flux?
+
+The data for this project includes Carbon stock, flux and other estimates, with data collected between 1979 and 2014, then again in 2015 as a 'control' year for future predictions based on a model. The Community Land Model was used to look at different scenarios. In particular this project is interested in the collected real data between 1979 and 2014, and the business as usual (BAU) scenario, in which predictions of tree stand ages and coverage are predicted based on 2015 events. These models aim to predict carbon storage and flux based on climate change and economic harvest rates.
+
+# The Data Maps
+
+The initial data collection, differences between 1979 and 2014. It only makes sense that we must have measurements of carbon storage for some period of time before we can make accurate assumptions. For the 35 years of collection, we will focus on the first and last points in time, either end of the spectrum, so we can look at the big differences over this interval of time, from which we can start to understand a general trend. This data includes eleven unique variables that we could look at, however we are particularly interested in :
+
+### NPP - Net Primary Production
+
+### AGC - Above Ground Live Tree Carbon
+
+### BAF - Burned Area Fraction
+
+### CL - Carbon Loss to Fire
+
+## What do these Variables Mean?
+
+Net primary production will tell us about the ecosystem health. Primary production refers to the production of organic matter by primary consumers such as plants, tree's and more. A higher value NPP means higher rates of photosynthesis.
+
+Aboveground live tree carbon shows us how much biomass exists within the ecosystem, so it is a good measure for Carbon Storage. This is important because our forests act as carbon sinks, which help keep our ecosystem in balance.
+
+Burned Area Fraction is a measure of how much of each cell within the map has been burned. This is based off the resolution of the maps. The Resolution of these maps are 4km x 4km , so each measure is a fraction of a 4km x 4km square area on the ground.
+
+Carbon loss to fire will give us an idea of how much carbon our ecosystem loses carbon to fires.
+
+Since around 2020, the threat of wildfires has drastically increased, with a record breaking fire year, and that record only keeps increasing as our climate changes. Our forests are our air filter so it's important to take care of it and promote growth and conservation. However we often do things to hurt the ecosystem, such as deforestation , poison it with agricultural chemicals, mining etc. Wildfires, as useful as they can be, can often be devastating. Our hand in fire activity also plays a huge role, as naturally occurring fires make up so little of the wildfires that actually get started, an article in the Smithsonian Magazine says about 84% of wildfires are started by people. Wildfires are a huge factor of forest health, in turn global health. The interaction between wildfires and carbon stocks are incredibly important, so let's have a look.
+
+# 1979 to 2014 Data Collected
+
+## Read in packages and File first
+
+```{r Packages_Initial, echo = TRUE, results='hide'}
+
+# Suppress warnings while loading packages
+suppressWarnings({
+  # Load packages
+  library(maps)
+  library(sf)
+  library(terra)
+  library(ggplot2)
+  library(RColorBrewer)
+  library(patchwork)
+  library(ggspatial)
+  library(tidyterra)
+  library(rmarkdown)
+})
+
+# Read data Carbon fluxes 1979 to 2014
+CarbonFlux_path <- "C:/Users/jettr/Dropbox (University of Oregon)/23-24/Winter/Geog 490 Mapping with R/Final Proj/data Directory/"
+CarbonFlux_name <- "IPSL_1979_2014_merge.nc"
+CFlux_file <- paste(CarbonFlux_path, CarbonFlux_name, sep = "")
+CFlux <- rast(CFlux_file)
+```
+
+```{r Varaibles, echo=TRUE}
+variable_names <- varnames(CFlux)
+print(variable_names)
+
+names = names(CFlux)
+print(names)
+
+
+```
+
+## Net Primary Production
+
+```{r NPP_plots, echo=TRUE, fig.show='hold'}
+
+# Extract and Plot NPP data for 1979
+NPP_1979 <- subset(CFlux, 1, names = "NPP")
+NPP_df_1979 <- as.data.frame(NPP_1979)
+names(NPP_df_1979) <- "NPP"
+
+# Calculate min and max values
+NPP_min_value_1979 <- min(values(NPP_1979), na.rm = TRUE)
+NPP_max_value_1979 <- max(values(NPP_1979), na.rm = TRUE)
+NPP_avg_1979 = mean(values(NPP_1979), na.rm =TRUE)
+
+# Plot NPP_1979 data with ggplot2
+NPP_plot_1979 <- ggplot() +
+  geom_spatraster(data = NPP_1979, aes(fill = NPP_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(NPP_min_value_1979,NPP_max_value_1979), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Net Primary Production 1979") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Extract and Plot NPP data for 2014
+NPP_2014 <- subset(CFlux, 36, names = "NPP")
+NPP_df_2014 <- as.data.frame(NPP_2014)
+names(NPP_df_2014) <- "NPP"
+
+# Calculate min and max values
+NPP_min_value_2014 <- min(values(NPP_2014), na.rm = TRUE)
+NPP_max_value_2014 <- max(values(NPP_2014), na.rm = TRUE)
+NPP_avg_2014 = mean(values(NPP_2014), na.rm = TRUE)
+
+# PLot NPP_2014 data with ggplot2
+NPP_plot_2014 <- ggplot() +
+  geom_spatraster(data = NPP_2014, aes(fill = NPP_36)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(NPP_min_value_2014,NPP_max_value_2014), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Net Primary Production 2014") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Combine plots into subplots
+NPP_subplots <- NPP_plot_1979 + NPP_plot_2014
+
+print(NPP_max_value_1979)
+print(NPP_max_value_2014)
+print(NPP_avg_1979)
+print(NPP_avg_2014)
+
+# Print the subplots
+print(NPP_subplots)
+```
+
+## Above Ground Live tree Carbon
+
+```{r AGC_plots, echo=FALSE, fig.show='hold'}
+
+ # Above Ground Tree Carbon   "AGC"
+
+
+# Extract and Plot AGC data for 1979
+AGC_1979 <- subset(CFlux, 217, names = "AGC_1")
+AGC_df_1979 <- as.data.frame(AGC_1979)
+names(AGC_df_1979) <- "AGC"
+
+# Calculate min and max values of AGC_1979
+AGC_min_value_1979 <- min(values(AGC_1979), na.rm = TRUE)
+AGC_max_value_1979 <- max(values(AGC_1979), na.rm = TRUE)
+AGC_avg_1979 = mean(values(AGC_1979), na.rm =TRUE)
+
+
+# Plot AGC_1979 data with ggplot2
+AGC_plot_1979 <- ggplot() +
+  geom_spatraster(data = AGC_1979, aes(fill = AGC_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m", limits = c(AGC_min_value_1979,AGC_max_value_1979), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Above Ground Live Tree Carbon 1979") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Extract and Plot AGC data for 2014
+AGC_2014 <- subset(CFlux, 252, names = "AGC_36")
+AGC_df_2014 <- as.data.frame(AGC_2014)
+names(AGC_df_2014) <- "AGC"
+
+# Calculate min and max values of AGC_2014
+AGC_min_value_2014 <- min(values(AGC_2014), na.rm = TRUE)
+AGC_max_value_2014 <- max(values(AGC_2014), na.rm = TRUE)
+AGC_avg_2014 = mean(values(AGC_2014), na.rm =TRUE)
+
+# PLot AGC_2014 data with ggplot2
+AGC_plot_2014 <- ggplot() +
+  geom_spatraster(data = AGC_2014, aes(fill = AGC_36)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m", limits = c(AGC_min_value_2014,AGC_max_value_2014), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Above Ground Live Tree Carbon 2014") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Combine plots into subplots
+AGC_subplots <- AGC_plot_1979 + AGC_plot_2014
+
+print(AGC_max_value_1979)
+print(AGC_max_value_2014)
+print(AGC_avg_1979)
+print(AGC_avg_2014)
+
+# Print the subplots
+print(AGC_subplots)
+
+
+```
+
+## Burned Area Fraction
+
+```{r BAF_plots, echo=FALSE, fig.show='hold'}
+
+# Extract and Plot BAF data for 1979
+BAF_1979 <- subset(CFlux, 361, names = "burned_area_fraction_1")
+BAF_df_1979 <- as.data.frame(BAF_1979)
+names(BAF_df_1979) <- "burned_area_fraction"
+
+# Calculate min and max values of BAF_1979
+BAF_min_value_1979 <- min(values(BAF_1979), na.rm = TRUE)
+BAF_max_value_1979 <- max(values(BAF_1979), na.rm = TRUE)
+BAF_avg_value_1979 <- mean(values(BAF_1979), na.rm = TRUE)
+BAF_sd_1979 = sd(values(BAF_1979), na.rm = FALSE)
+
+
+# Plot BAF_1979 data with ggplot2
+BAF_plot_1979 <- ggplot() +
+  geom_spatraster(data = BAF_1979, aes(fill = burned_area_fraction_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "Frac.Burned", limits = c(0,1e-11), na.value = "transparent") +
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Burned Area Fraction 1979") + # Add title
+  theme(panel.background = element_rect(fill = "grey")) + 
+  theme_grey()  # Adjust theme if needed
+
+# Extract and Plot BAF data for 2014
+BAF_2014 <- subset(CFlux, 396, names = "burned_area_fraction_36")
+BAF_df_2014 <- as.data.frame(BAF_2014)
+names(BAF_df_2014) <- "burned_area_fraction"
+
+# Calculate min and max values of BAF_2014
+BAF_min_value_2014 <- min(values(BAF_2014), na.rm = TRUE)
+BAF_max_value_2014 <- max(values(BAF_2014), na.rm = TRUE)
+BAF_avg_value_2014 <- mean(values(BAF_2014), na.rm = TRUE)
+BAF_sd_2014 = sd(values(BAF_2014), na.rm = TRUE)
+
+
+# PLot BAF_2014 data with ggplot2
+BAF_plot_2014 <- ggplot() +
+  geom_spatraster(data = BAF_2014, aes(fill = burned_area_fraction_36)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "Frac.Burned", limits = c(0,1e-9), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Burned Area Fraction 2014") + # Add title
+  theme(panel.background = element_rect(fill = "grey")) + 
+  theme_gray()  # Adjust theme if needed
+
+# Combine plots into subplots
+BAF_subplots <- BAF_plot_1979 + BAF_plot_2014
+
+print(BAF_max_value_1979)
+print(BAF_max_value_2014)
+print(BAF_avg_value_1979)
+print(BAF_avg_value_2014)
+
+# Print the subplots
+print(BAF_subplots)
+
+
+```
+
+## Carbon Loss to fire
+
+```{r CL_plots, echo=FALSE, fig.show='hold'}
+
+# Carbon loss from fire " COL_Fire_CLOSS" we'll shorten to CL when we can
+
+# Extract and Plot Carbon Loss data for 1979
+CL_1979 <- subset(CFlux, 181, names = "COL_FIRE_CLOSS_1")
+CL_df_1979 <- as.data.frame(CL_1979)
+names(CL_df_1979) <- "COL_FIRE_CLOSS"
+
+# Calculate min and max values of CL_1979
+CL_min_value_1979 <- min(values(CL_1979), na.rm = TRUE)
+CL_max_value_1979 <- max(values(CL_1979), na.rm = TRUE)
+CL_avg_1979 = mean(values(CL_1979), na.rm = TRUE)
+
+# Plot CL_1979 data with ggplot2
+CL_plot_1979 <- ggplot() +
+  geom_spatraster(data = CL_1979, aes(fill = COL_FIRE_CLOSS_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(CL_min_value_1979,1e-7), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Carbon Loss to Fire 1979") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_grey()  # Adjust theme if needed
+
+# Extract and Plot CL data for 2014
+CL_2014 <- subset(CFlux, 216, names = "COL_FIRE_CLOSS_36")
+CL_df_2014 <- as.data.frame(BAF_2014)
+names(BAF_df_2014) <- "COL_FIRE_CLOSS"
+
+# Calculate min and max values of CL_2014
+CL_min_value_2014 <- min(values(CL_2014), na.rm = TRUE)
+CL_max_value_2014 <- max(values(CL_2014), na.rm = TRUE)
+CL_avg_2014 = mean(values(CL_2014), na.rm = TRUE)
+
+
+# Plot CL_2014 data with ggplot2
+CL_plot_2014 <- ggplot() +
+  geom_spatraster(data = CL_2014, aes(fill = COL_FIRE_CLOSS_36)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(CL_min_value_2014,1e-6), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle(" Carbon Loss to Fire 2014") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_grey()  # Adjust theme if needed
+
+# Combine plots into subplots
+CL_subplots <- CL_plot_1979 + CL_plot_2014
+
+print(CL_max_value_1979)
+print(CL_max_value_2014)
+print(CL_avg_1979)
+print(CL_avg_2014)
+
+# Print the subplots
+print(CL_subplots)
+
+
+```
+
+# 1979 to 2014 Takeaways
+
+NPP - average slight increase in NPP to 2014 , maximum decreases
+
+AGC - On average higher in PNW , little change around Colorado Arizona, slightly higher, not incredibly noticeable. MORE SPOTS, DARK , Possibly increase in logging and deforestation.
+
+Burned Area Fraction - On Average , there is less burned area, however there are some spots near Idaho that are lighter. This Variable is a bit less indicative, because burned areas can linger, trees can be replanted etc. But also the changes in this variable are so small, likely due to resolution. A 4km x 4km area is fairly large.
+
+Carbon Loss to Fire - In the west, there is a trend toward more carbon lost, this becomes more prominent in the east. We can also see that in 2014 there is less coverage, possibly
+
+# The Forecast
+
+The Model uses data, laws and other regulations from 2015 to project into the year 2099 , a business as usual prediction. The simulation uses the Community Land Model (v4.5) with current day forest stand ages, harvest rates and a climate prediction model.
+
+```{r Packages_Prediction, echo = FALSE, results='hide'}
+# Load packages
+library(maps)
+library(sf)
+library(terra)
+library(ggplot2)
+library(RColorBrewer)
+library(patchwork)
+library(ggspatial)
+library(tidyterra)
+
+
+# Read data Carbon fluxes 1979 to 2014
+CarbonFlux_path <- "C:/Users/jettr/Dropbox (University of Oregon)/23-24/Winter/Geog 490 Mapping with R/Final Proj/data Directory/"
+CarbonFlux_name <- "IPSL_2015_2099_BAU_merge.nc"
+CFlux_file <- paste(CarbonFlux_path, CarbonFlux_name, sep = "")
+CFlux <- rast(CFlux_file)
+
+variable_names <- varnames(CFlux)
+#print(variable_names)
+
+names = names(CFlux)
+#print(names)
+
+```
+
+## Net Primary Production
+
+```{r NPP_plots_Prediction, echo=TRUE, fig.show='hold'}
+# Net Primary Production
+
+# Extract and Plot NPP data for 2015
+NPP_2015 <- subset(CFlux, 1, names = "NPP")
+NPP_df_2015 <- as.data.frame(NPP_2015)
+names(NPP_df_2015) <- "NPP"
+
+# Calculate min and max values
+NPP_min_value_2015 <- min(values(NPP_2015), na.rm = TRUE)
+NPP_max_value_2015 <- max(values(NPP_2015), na.rm = TRUE)
+NPP_avg_value_2015 = mean(values(NPP_2015), na.rm = TRUE)
+
+# Plot NPP_1979 data with ggplot2
+NPP_plot_2015 <- ggplot() +
+  geom_spatraster(data = NPP_2015, aes(fill = NPP_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(NPP_min_value_2015,NPP_max_value_2015), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Net Primary Production 2015") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Extract and Plot NPP data for 2014
+NPP_2065 <- subset(CFlux, 65, names = "NPP")
+NPP_df_2065 <- as.data.frame(NPP_2065)
+names(NPP_df_2065) <- "NPP"
+
+# Calculate min and max values
+NPP_min_value_2065 <- min(values(NPP_2065), na.rm = TRUE)
+NPP_max_value_2065 <- max(values(NPP_2065), na.rm = TRUE)
+NPP_avg_value_2065 = mean(values(NPP_2065), na.rm = TRUE)
+
+
+# PLot NPP_2014 data with ggplot2
+NPP_plot_2065 <- ggplot() +
+  geom_spatraster(data = NPP_2065, aes(fill = NPP_65)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(NPP_min_value_2065,NPP_max_value_2065), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Net Primary Production 2065") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Combine plots into subplots
+NPP_subplots <- NPP_plot_2015 + NPP_plot_2065
+
+# Print the subplots
+print(NPP_subplots)
+print(NPP_max_value_2015)
+print(NPP_max_value_2065)
+
+print(NPP_avg_value_2015)
+print(NPP_avg_value_2065)
+```
+
+## Above ground Live Tree Carbon
+
+```{r AGC_plots_Prediction, echo=FALSE, fig.show='hold'}
+
+# Above Ground Tree Carbon   "AGC"
+
+
+# Extract and Plot AGC data for 1979
+AGC_2015 <- subset(CFlux, 511, names = "AGC_1")
+AGC_df_2015 <- as.data.frame(AGC_2015)
+names(AGC_df_2015) <- "AGC"
+
+# Calculate min and max values of AGC_2014
+AGC_min_value_2015 <- min(values(AGC_2015), na.rm = TRUE)
+AGC_max_value_2015 <- max(values(AGC_2015), na.rm = TRUE)
+AGC_avg_value_2015 = mean(values(AGC_2015) , na.rm = TRUE)
+
+# Plot NPP_1979 data with ggplot2
+AGC_plot_2015 <- ggplot() +
+  geom_spatraster(data = AGC_2015, aes(fill = AGC_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m", limits = c(AGC_min_value_2015,AGC_max_value_2015), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Above Ground Live Tree Carbon 2015") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Extract and Plot NPP data for 2014
+AGC_2065 <- subset(CFlux, 575, names = "AGC_36")
+AGC_df_2065 <- as.data.frame(AGC_2065)
+names(AGC_df_2065) <- "AGC"
+
+# Calculate min and max values of AGC_2014
+AGC_min_value_2065 <- min(values(AGC_2065), na.rm = TRUE)
+AGC_max_value_2065 <- max(values(AGC_2065), na.rm = TRUE)
+AGC_avg_value_2065 = mean(values(AGC_2065), na.rm = TRUE)
+
+# PLot NPP_2014 data with ggplot2
+AGC_plot_2065 <- ggplot() +
+  geom_spatraster(data = AGC_2065, aes(fill = AGC_65)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m", limits = c(AGC_min_value_2065,AGC_max_value_2065), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Above Ground Live Tree Carbon 2065") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Combine plots into subplots
+AGC_subplots <- AGC_plot_2015 + AGC_plot_2065
+
+# Print the subplots
+print(AGC_subplots)
+print(AGC_max_value_2015)
+print(AGC_max_value_2065)
+
+print(AGC_avg_value_2015)
+print(AGC_avg_value_2065)
+```
+
+## Burned Area Fraction
+
+```{r BAF_plots_Prediction, echo=FALSE, fig.show='hold'}
+
+# burned area fraction "burned_area_fraction" well shorten to BAF where we can
+
+
+
+# Extract and Plot AGC data for 1979
+BAF_2015 <- subset(CFlux, 851, names = "burned_area_fraction_1")
+BAF_df_2015 <- as.data.frame(BAF_2015)
+names(BAF_df_2015) <- "burned_area_fraction"
+
+# Calculate min and max values of AGC_2014
+BAF_min_value_2015 <- min(values(BAF_2015), na.rm = TRUE)
+BAF_max_value_2015 <- max(values(BAF_2015), na.rm = TRUE)
+BAF_avg_value_2015 = mean(values(BAF_2015), na.rm = TRUE)
+
+# Plot NPP_1979 data with ggplot2
+BAF_plot_2015 <- ggplot() +
+  geom_spatraster(data = BAF_2015, aes(fill = burned_area_fraction_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "Frac.Burned", limits = c(BAF_min_value_2015,BAF_max_value_2015), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Burned Area Fraction 2015") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Extract and Plot NPP data for 2014
+BAF_2065 <- subset(CFlux, 915, names = "burned_area_fraction_65")
+BAF_df_2065 <- as.data.frame(BAF_2065)
+names(BAF_df_2065) <- "burned_area_fraction"
+
+# Calculate min and max values of AGC_2014
+BAF_min_value_2065 <- min(values(BAF_2065), na.rm = TRUE)
+BAF_max_value_2065 <- max(values(BAF_2065), na.rm = TRUE)
+BAF_avg_value_2065 = mean(values(BAF_2065), na.rm = TRUE)
+
+# PLot NPP_2014 data with ggplot2
+BAF_plot_2065 <- ggplot() +
+  geom_spatraster(data = BAF_2065, aes(fill = burned_area_fraction_65)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "Frac.Burned", limits = c(BAF_min_value_2065,BAF_max_value_2065), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Burned Area Fraction 2065") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Combine plots into subplots
+BAF_subplots <- BAF_plot_2015 + BAF_plot_2065
+
+# Print the subplots
+print(BAF_subplots)
+print(BAF_max_value_2015)
+print(BAF_max_value_2065)
+
+
+print(BAF_avg_value_2015)
+print(BAF_avg_value_2065)
+```
+
+## Carbon Loss
+
+```{r CL_plots_Prediction, echo=FALSE, fig.show='hold'}
+
+# Carbon loss from fire " COL_Fire_CLOSS" we'll shorten to CL when we can
+
+
+# Extract and Plot Carbon Loss data for 1979
+CL_2015 <- subset(CFlux, 426, names = "COL_FIRE_CLOSS_1")
+CL_df_2015 <- as.data.frame(CL_2015)
+names(CL_df_2015) <- "COL_FIRE_CLOSS"
+
+# Calculate min and max values of AGC_2014
+CL_min_value_2015 <- min(values(CL_2015), na.rm = TRUE)
+CL_max_value_2015 <- max(values(CL_2015), na.rm = TRUE)
+CL_avg_value_2015 = mean(values(CL_2015),na.rm = TRUE)
+
+# Plot NPP_1979 data with ggplot2
+CL_plot_2015 <- ggplot() +
+  geom_spatraster(data = CL_2015, aes(fill = COL_FIRE_CLOSS_1)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(CL_min_value_2015,CL_max_value_2015), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle("Carbon Loss to Fire 2015") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Extract and Plot NPP data for 2014
+CL_2065 <- subset(CFlux, 490, names = "COL_FIRE_CLOSS_36")
+CL_df_2065 <- as.data.frame(BAF_2065)
+names(BAF_df_2065) <- "COL_FIRE_CLOSS"
+
+# Calculate min and max values of AGC_2014
+CL_min_value_2065 <- min(values(CL_2065), na.rm = TRUE)
+CL_max_value_2065 <- max(values(CL_2065), na.rm = TRUE)
+CL_avg_value_2065 = mean(values(CL_2015), na.rm = TRUE)
+
+# PLot NPP_2014 data with ggplot2
+CL_plot_2065 <- ggplot() +
+  geom_spatraster(data = CL_2065, aes(fill = COL_FIRE_CLOSS_65)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(9, "Greens")), name = "g/m*m*s", limits = c(CL_min_value_2065,CL_max_value_2065), na.value = "transparent") +  # Customize color scale
+  labs(x = "Longitude", y = "Latitude") +  # Customize axis labels
+  ggtitle(" Carbon Loss to Fire 2065") + # Add title
+  theme(panel.background = element_rect(fill = "lightgrey")) + 
+  theme_light()  # Adjust theme if needed
+
+# Combine plots into subplots
+CL_subplots <- CL_plot_2015 + CL_plot_2065
+
+# Print the subplots
+print(CL_subplots)
+print(CL_max_value_2014)
+print(CL_max_value_2065)
+
+print(CL_avg_value_2015)
+print(CL_avg_value_2065)
+```
+
+# Forecast takeaways
+
+NPP - PNW and West fairly similar, slightly darker in Utah/Montana area. E Nevada, Utah , Arizona Area sees darkening , less production of carbon in 2065. Max values of NPP increase in 2065 , so colors that are the same between graphs represent greater values in 2065.
+
+AGC - Max Values greater in 2065 , most of the map is similar, so on average , 2065 has greater values.
+
+BAF - Mostly dark because this is related to wildfire burned areas. 2065 sees more light spots, meaning more fires in these locations. We can see that 2065 has more fires, especially in Idaho.
+
+CL - Carbon loss is very closely related to BAF , particularly spatially. Carbon Loss Maximum is larger for 2015 , however because we saw more burned locations in the previous graph, there are more locations in which noticeable carbon loss occurs in 2065.
+
+# Conclusions
+
+Over the span of 35 years from 1979 to 2014, primary production increases, so the forest is photosynthesizing at higher rates, so forest biomass is increased and producing energy faster than it is respiring. We can also see in the Above ground tree carbon, that there are spots that are dark, this could be due to logging or deforestation, since dark spots represent a lack of a tree stand, however some of this could also be due to fires. Carbon loss and burned area fraction are very similar, however just because an area is burned doesn't mean all carbon is lost. Generally we can see that in 2014, less area has been burned, yet more area has experienced larger carbon loss. Most of the carbon loss is hardly noticeable, but present in small splotches more east.
+
+From 2015 , through 2065 , a 50 year period, using a simulated model, we can see our carbon storage and flux forecast for the western US. In primary production, the PNW seems to have similar measures for primary production, however there is definitely a decrease in biomass in the more eastern part of the plot, in the Colorado, SE Nevada region. Above ground tree carbon is nearly similar, however the scale is different, so there is a general increase in Tree carbon storage in 2065. In 2065 , there is noticeably more area that is lighter, these are small splotches, however there are some larger areas in the Sierras and near Colorado that are brighter. The scale however is far different, as these lighter areas in 2065 show a smaller fraction of burned area. A similar trend can be found in carbon loss.
+
+The model is showing some conflicting ideas. There seems to be a general reduction in biomass in the long term, however there is also more tree carbon. The carbon loss to fire and Burned area may be explained by increasing fire incidents, with less large fires, which would show as smaller BAF and more light area in the CL to fire.
+
+# Discussion and Restrictions
+
+The nature of the model is simply a thought experiment, how might carbon flux and storage look if we continued 2015 harvest rates, climate , economy etc. How might these measures change over time and look in the future? This data proved to be difficult to work with in a couple ways, the nature of the data files proved difficult to pull out the individual variables such as specific years of a variable. Once the plotting was done, it became increasingly difficult to figure out how to represent it well. The scales change from year to year, with data at increasingly smaller magnitudes and differences, with zeros and nan values. Ways to improve would be to plot this data across a map of the united states, to get a better idea of the spatial relations. Figuring out a better scale for the color map, this became difficult as I wanted to plot the data on a logarithmic scale, yet logarithmic transformations wouldn't work with the zero values. It would be easier to see trends if plotted against more years, and finding some way to find correlation coefficients between different variable may also prove useful.
+
+# Sources
+
+### NACP: Forest Carbon Stocks, fluxes and Productivity Estimates, Western USA, 1979-2099. ORNL DAAC. (n.d.). <https://daac.ornl.gov/NACP/guides/NACP_Forest_Conservation.html>
+
+### Magazine, S. (2017, February 28). Study shows 84% of wildfires caused by humans. Smithsonian.com. <https://www.smithsonianmag.com/smart-news/study-shows-84-wildfires-caused-humans-180962315/>
+
+### Biology Online. (n.d.). Net Primary Productivity. Retrieved from <https://www.biologyonline.com/dictionary/net-primary-productivity>
